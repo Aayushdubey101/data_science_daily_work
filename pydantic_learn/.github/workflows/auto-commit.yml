@@ -1,0 +1,93 @@
+name: AI Auto Commit with Gemini
+
+on:
+  push:
+    branches:
+      - work1
+
+jobs:
+  auto-commit:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "Aayushdubey101"
+          git config user.email "aayushdubey9614@gmail.com"
+
+      - name: Check for changes in last commit
+        id: check_changes
+        run: |
+          if git diff HEAD~1 HEAD --quiet; then
+            echo "changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install jq
+        if: steps.check_changes.outputs.changes == 'true'
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Generate AI commit message with Gemini
+        if: steps.check_changes.outputs.changes == 'true'
+        id: ai_commit
+        run: |
+          # Get the diff of last commit
+          DIFF=$(git diff HEAD~1 HEAD)
+          
+          # Truncate diff if too large (Gemini has good context window)
+          DIFF_TRUNCATED=$(echo "$DIFF" | head -c 5000)
+          
+          # Escape special characters for JSON
+          DIFF_ESCAPED=$(echo "$DIFF_TRUNCATED" | jq -Rs .)
+          
+          # Call Gemini API to generate commit message
+          RESPONSE=$(curl -s -X POST \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${{ secrets.GEMINI_API_KEY }}" \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "contents": [{
+                "parts": [{
+                  "text": "You are a git commit message generator. Based on the following git diff, generate a single concise commit message (max 72 characters) following conventional commits format: <type>: <description>. Types: feat, fix, docs, style, refactor, test, chore. Only output the commit message, nothing else.\n\nGit diff:\n'"$DIFF_ESCAPED"'"
+                }]
+              }],
+              "generationConfig": {
+                "temperature": 0.3,
+                "maxOutputTokens": 100
+              }
+            }')
+          
+          # Extract commit message from response
+          COMMIT_MSG=$(echo "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text' | tr -d '\n' | head -c 200)
+          
+          # Fallback if API fails
+          if [ -z "$COMMIT_MSG" ] || [ "$COMMIT_MSG" = "null" ]; then
+            CHANGED_FILES=$(git diff HEAD~1 HEAD --name-only | head -3 | tr '\n' ' ')
+            COMMIT_MSG="chore: update ${CHANGED_FILES}"
+          fi
+          
+          echo "Gemini generated message: $COMMIT_MSG"
+          echo "message=$COMMIT_MSG" >> $GITHUB_OUTPUT
+
+      - name: Amend commit with AI message
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          git commit --amend -m "${{ steps.ai_commit.outputs.message }}"
+
+      - name: Push changes
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          git push --force-with-lease origin work1
+
+      - name: Handle push failure
+        if: failure() && steps.check_changes.outputs.changes == 'true'
+        run: |
+          echo "Push failed. Manual intervention may be required."
+          exit 1
