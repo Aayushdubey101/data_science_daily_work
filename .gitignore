@@ -35,7 +35,7 @@ env/
 # Uncomment if you want to ignore lock files
 # uv.lock
 # pyproject.toml
-
+.amazonq
 # Python version
 .python-version
 
