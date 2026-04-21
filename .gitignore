@@ -20,6 +20,18 @@ wheels/
 .installed.cfg
 *.egg
 
+# Tool caches / test artifacts
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.nox/
+.tox/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+pip-wheel-metadata/
+
 # Virtual Environments
 venv/
 ENV/
@@ -28,7 +40,7 @@ env/
 
 # uv.lock
 # Jupyter Notebook
-.ipynb_checkpoints
+.ipynb_checkpoints/
 # *.ipynb
 
 # pyproject.toml / uv

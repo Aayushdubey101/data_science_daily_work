@@ -3,12 +3,21 @@ name = "data-science-daily-work"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.11"
 dependencies = [
+    "fastapi>=0.136.0",
+    "flask>=3.1.3",
     "ipykernel>=7.2.0",
     "jupyter>=1.1.1",
     "matplotlib>=3.10.8",
+    "nbformat>=5.10.4",
     "numpy>=2.4.2",
+    "openpyxl>=3.1.5",
     "pandas>=3.0.1",
+    "plotly>=6.6.0",
+    "pydantic>=2.13.3",
+    "requests>=2.32.5",
+    "scikit-learn>=1.8.0",
     "seaborn>=0.13.2",
+    "uvicorn>=0.45.0",
 ]
