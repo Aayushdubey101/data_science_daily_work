@@ -1,0 +1,67 @@
+/* ════════════════════════════════════════════
+   Design tokens – dark theme
+   ════════════════════════════════════════════ */
+:root {
+  --surface-0:    #0d0e11;
+  --surface-1:    #111318;
+  --surface-2:    #1b1e26;
+  --surface-3:    #252934;
+  --border:       rgba(255,255,255,0.08);
+  --text-primary: #e8eaf0;
+  --text-muted:   #7a7f92;
+  --scrollbar:    rgba(255,255,255,0.12);
+
+  /* Indigo accent */
+  --accent:       #6366f1;
+  --accent-hover: #4f52d9;
+  --accent-light: #a5b4fc;
+  --accent-glow:  rgba(99,102,241,0.18);
+
+  /* Error */
+  --error-bg:     rgba(239,68,68,0.12);
+  --error-text:   #fca5a5;
+  --error-border: rgba(239,68,68,0.3);
+
+  color-scheme: dark;
+}
+
+/* ════════════════════════════════════════════
+   Reset & base
+   ════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+button {
+  font-family: inherit;
+}
+
+a {
+  color: var(--accent-light);
+}
+
+/* ════════════════════════════════════════════
+   Scrollbar (global)
+   ════════════════════════════════════════════ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}

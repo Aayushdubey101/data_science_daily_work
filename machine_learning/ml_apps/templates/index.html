@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Local LLM Chat</title>
+    <style>
+        :root {
+            --bg: #f4f6f8;
+            --panel: #ffffff;
+            --border: #d9e1e8;
+            --text: #1e2a36;
+            --muted: #5e6b77;
+            --accent: #0066cc;
+            --accent-hover: #0052a3;
+            --assistant: #eef6ff;
+            --user: #f1f8ef;
+            --danger: #bf2020;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: radial-gradient(circle at top, #ffffff 0%, var(--bg) 60%);
+            color: var(--text);
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+        }
+
+        .app {
+            width: min(900px, 100%);
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 14px 40px rgba(10, 35, 66, 0.08);
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .header p {
+            margin: 6px 0 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .chat {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            height: 62vh;
+            overflow-y: auto;
+        }
+
+        .msg {
+            max-width: 86%;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 12px;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .msg.user {
+            align-self: flex-end;
+            background: var(--user);
+        }
+
+        .msg.assistant {
+            align-self: flex-start;
+            background: var(--assistant);
+        }
+
+        .msg.system {
+            align-self: center;
+            background: #fff8e8;
+            color: #7a5b00;
+            font-size: 0.92rem;
+        }
+
+        .composer {
+            border-top: 1px solid var(--border);
+            padding: 14px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            resize: vertical;
+            min-height: 58px;
+            max-height: 160px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+            font: inherit;
+        }
+
+        button {
+            align-self: end;
+            border: none;
+            border-radius: 10px;
+            padding: 11px 16px;
+            font: inherit;
+            font-weight: 600;
+            color: white;
+            background: var(--accent);
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .error {
+            color: var(--danger);
+            font-size: 0.92rem;
+            padding: 0 14px 12px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 720px) {
+            .chat { height: 58vh; }
+            .msg { max-width: 100%; }
+            .composer { grid-template-columns: 1fr; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <main class="app">
+        <section class="header">
+            <h1>Chat with your local LM Studio model</h1>
+            <p>Flask app using OpenAI-compatible endpoint from LM Studio.</p>
+        </section>
+
+        <section id="chat" class="chat">
+            <div class="msg system">Say hi to start chatting.</div>
+        </section>
+
+        <form id="chat-form" class="composer">
+            <textarea id="message" placeholder="Type your message..." required></textarea>
+            <button id="send-btn" type="submit">Send</button>
+        </form>
+
+        <div id="error" class="error"></div>
+    </main>
+
+    <script>
+        const form = document.getElementById("chat-form");
+        const input = document.getElementById("message");
+        const sendBtn = document.getElementById("send-btn");
+        const chatBox = document.getElementById("chat");
+        const errorBox = document.getElementById("error");
+
+        const history = [];
+
+        function addMessage(role, content) {
+            const el = document.createElement("div");
+            el.className = `msg ${role}`;
+            el.textContent = content;
+            chatBox.appendChild(el);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const message = input.value.trim();
+            if (!message) return;
+
+            errorBox.textContent = "";
+            addMessage("user", message);
+            history.push({ role: "user", content: message });
+
+            input.value = "";
+            sendBtn.disabled = true;
+
+            try {
+                const response = await fetch("/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message, history: history.slice(0, -1) }),
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || "Failed to get response.");
+                }
+
+                addMessage("assistant", data.reply);
+                history.push({ role: "assistant", content: data.reply });
+            } catch (err) {
+                errorBox.textContent = err.message;
+            } finally {
+                sendBtn.disabled = false;
+                input.focus();
+            }
+        });
+    </script>
+</body>
+</html>
